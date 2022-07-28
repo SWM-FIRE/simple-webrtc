@@ -17,7 +17,12 @@ const servers = {
   ],
 };
 
+let socket;
+
 let init = async () => {
+  // initialize socket.io
+  socket = io('https://모도코.com/socket/room');
+
   // Get the local stream and set it as the video source
   localStream = await navigator.mediaDevices.getDisplayMedia();
   localVideo.srcObject = localStream;
