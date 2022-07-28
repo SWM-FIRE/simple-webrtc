@@ -22,6 +22,10 @@ const room = 'random';
 const uid = 'user1';
 
 let init = async () => {
+  // Get the local stream and set it as the video source
+  localStream = await navigator.mediaDevices.getDisplayMedia();
+  localVideo.srcObject = localStream;
+
   // initialize socket.io
   socket = io('https://모도코.com/socket/room');
   socket.on('connect', () => {
@@ -29,11 +33,11 @@ let init = async () => {
 
     // join random room
     socket.emit('joinRoom', { room, uid });
+  });
 
-    // on joinRoom event
-    socket.on('joinedRoom', (room) => {
-      console.log('[SOCKET] join room', room, 'success');
-    });
+  // on joinRoom event
+  socket.on('joinedRoom', (room) => {
+    console.log('[SOCKET] join room', room, 'success');
 
     // on newUser joinedRoom event
     socket.on('newUser', onNewUserJoinedRoom);
@@ -49,10 +53,6 @@ let init = async () => {
     // which is ice-candidate of other user
     socket.on('ice-candidate', onIceCandidateRecieved);
   });
-
-  // Get the local stream and set it as the video source
-  localStream = await navigator.mediaDevices.getDisplayMedia();
-  localVideo.srcObject = localStream;
 };
 
 // create peer connection
@@ -94,7 +94,7 @@ let createPeerConnection = async (sid) => {
       console.log('[SOCKET] Trickle ice (send ice candidate)');
       // send ice candidate to other user
       socket.emit('ice-candidate', {
-        to: room,
+        to: sid,
         candidate: event.candidate,
       });
     }
@@ -134,14 +134,14 @@ let onNewUserJoinedRoom = async (user) => {
 };
 
 // handle offer from new user
-let onCallMade = (data) => {
+let onCallMade = async (data) => {
   console.log(`[SOCKET:on"call-made"] received offer from other user(${data.socket})`);
   // create answer and send it to other user
-  createAnswer(data.socket, data.offer);
+  await createAnswer(data.socket, data.offer);
 };
 
 // handle answer made from other user
-let onAnswerMade = (data) => {
+let onAnswerMade = async (data) => {
   console.log(`[SOCKET:on"answer-made"] received answer from other user(${data.socket})`);
   if (!peerConnection.currentRemoteDescription) {
     peerConnection.setRemoteDescription(data.answer);
@@ -156,6 +156,7 @@ let onIceCandidateRecieved = (data) => {
 
   // add ice candidate to peer connection
   if (peerConnection) {
+    console.log('Debug', peerConnection);
     peerConnection.addIceCandidate(data.candidate);
   }
 };
