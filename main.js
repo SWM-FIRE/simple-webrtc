@@ -18,6 +18,8 @@ const servers = {
 };
 
 let socket;
+const room = 'random';
+const uid = 'user1';
 
 let init = async () => {
   // initialize socket.io
@@ -26,11 +28,11 @@ let init = async () => {
     console.log('[SOCKET] socket connected');
 
     // join random room
-    socket.emit('joinRoom', { room: 'random', uid: 'user1' });
+    socket.emit('joinRoom', { room, uid });
 
     // on joinRoom event
-    socket.on('joinedRoom', () => {
-      console.log('[SOCKET] join room success');
+    socket.on('joinedRoom', (room) => {
+      console.log('[SOCKET] join room', room, 'success');
     });
 
     // on newUser joinedRoom event
@@ -39,6 +41,10 @@ let init = async () => {
     // listen to call-user event's offer
     // which is call-made event
     socket.on('call-made', onCallMade); // end of call-made event listener
+
+    // listen to ice-candidate event
+    // which is ice-candidate of other user
+    socket.on('ice-candidate', onIceCandidateRecieved);
   });
 
   // Get the local stream and set it as the video source
@@ -77,6 +83,13 @@ let createOffer = async (sid) => {
   peerConnection.onicecandidate = async (event) => {
     if (event.candidate) {
       console.log('[RTC] New ice candiate created :', event.candidate);
+
+      console.log('[SOCKET] Trickle ice (send ice candidate)');
+      // send ice candidate to other user
+      socket.emit('ice-candidate', {
+        to: room,
+        candidate: event.candidate,
+      });
     }
   };
 
@@ -86,13 +99,20 @@ let createOffer = async (sid) => {
 };
 
 onNewUserJoinedRoom = async (user) => {
-  console.log(`[SOCKET] new user(${user.sid}) joined room`);
+  console.log(`[SOCKET:on"newUser"] new user(${user.sid}) joined room`);
   await createOffer(user.sid);
 };
 
 // handle offer from new user
 onCallMade = (data) => {
-  console.log(`[SOCKET] call-made (offer from other user) : ${data.from}`);
+  console.log(`[SOCKET:on"call-made"] received offer from other user(${data.socket})`);
+};
+
+// handle ice-candidate from other user
+onIceCandidateRecieved = (data) => {
+  console.log(
+    `[SOCKET:on"ice-candidate"] received ice-candidate from other user(${data.sid}), candidate: ${data.candidate}`
+  );
 };
 
 init();
