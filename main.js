@@ -147,6 +147,9 @@ let onIceCandidateRecieved = (data) => {
   console.log(
     `[SOCKET:on"ice-candidate"] received ice-candidate from other user(${data.sid}), candidate: ${data.candidate}`
   );
+
+  // add ice candidate to peer connection
+  if (peerConnection) peerConnection.addIceCandidate(data.candidate);
 };
 
 init();
