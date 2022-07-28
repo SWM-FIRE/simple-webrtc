@@ -22,6 +22,20 @@ let socket;
 let init = async () => {
   // initialize socket.io
   socket = io('https://모도코.com/socket/room');
+  socket.on('connect', () => {
+    console.log('[SOCKET] socket connected');
+
+    // join random room
+    socket.emit('joinRoom', { room: 'random', uid: 'user1' });
+
+    // on joinRoom event
+    socket.on('joinedRoom', () => {
+      console.log('[SOCKET] join room success');
+    });
+
+    // on newUser joinedRoom event
+    socket.on('newUser', onNewUserJoinedRoom);
+  });
 
   // Get the local stream and set it as the video source
   localStream = await navigator.mediaDevices.getDisplayMedia();
@@ -60,11 +74,15 @@ let createOffer = async () => {
   // onicecandidate event is fired whenever a candidate is found
   peerConnection.onicecandidate = async (event) => {
     if (event.candidate) {
-      console.log('New ice candiate:', event.candidate);
+      console.log('[RTC] New ice candiate created :', event.candidate);
     }
   };
 
-  console.log('offer:', offer);
+  console.log('[RTC] offer:', offer);
+};
+
+onNewUserJoinedRoom = (user) => {
+  console.log(`[SOCKET] new user(${user.sid}) joined room`);
 };
 
 init();
