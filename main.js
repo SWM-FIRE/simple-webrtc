@@ -35,16 +35,18 @@ let init = async () => {
 
     // on newUser joinedRoom event
     socket.on('newUser', onNewUserJoinedRoom);
+
+    // listen to call-user event's offer
+    // which is call-made event
+    socket.on('call-made', onCallMade); // end of call-made event listener
   });
 
   // Get the local stream and set it as the video source
   localStream = await navigator.mediaDevices.getDisplayMedia();
   localVideo.srcObject = localStream;
-
-  await createOffer();
 };
 
-let createOffer = async () => {
+let createOffer = async (sid) => {
   peerConnection = new RTCPeerConnection(servers);
 
   // setup remote video
@@ -78,11 +80,19 @@ let createOffer = async () => {
     }
   };
 
-  console.log('[RTC] offer:', offer);
+  // send offer to new user
+  console.log(`[SOCKET] call user(${sid}) with offer`);
+  socket.emit('call-user', { to: sid, offer });
 };
 
-onNewUserJoinedRoom = (user) => {
+onNewUserJoinedRoom = async (user) => {
   console.log(`[SOCKET] new user(${user.sid}) joined room`);
+  await createOffer(user.sid);
+};
+
+// handle offer from new user
+onCallMade = (data) => {
+  console.log(`[SOCKET] call-made (offer from other user) : ${data.from}`);
 };
 
 init();
