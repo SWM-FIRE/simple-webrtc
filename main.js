@@ -64,6 +64,13 @@ let createPeerConnection = async (sid) => {
   remoteStream = new MediaStream();
   remoteVideo.srcObject = remoteStream;
 
+  // setup local video if not ready
+  if (!localStream) {
+    console.log('[RTC] local stream not ready, wait for it...');
+    localStream = await navigator.mediaDevices.getDisplayMedia();
+    localVideo.srcObject = localStream;
+  }
+
   // setup local track to send
   localStream.getTracks().forEach((track) => {
     peerConnection.addTrack(track, localStream);
@@ -73,7 +80,6 @@ let createPeerConnection = async (sid) => {
   // = anytime a remote track is added to the peer connection
   //   add it to the remote video track
   peerConnection.ontrack = (event) => {
-    console.log(event.streams);
     event.streams[0].getTracks().forEach((track) => {
       remoteStream.addTrack(track);
     });
@@ -149,7 +155,9 @@ let onIceCandidateRecieved = (data) => {
   );
 
   // add ice candidate to peer connection
-  if (peerConnection) peerConnection.addIceCandidate(data.candidate);
+  if (peerConnection) {
+    peerConnection.addIceCandidate(data.candidate);
+  }
 };
 
 init();
