@@ -42,6 +42,9 @@ let init = async () => {
     // which is call-made event
     socket.on('call-made', onCallMade); // end of call-made event listener
 
+    // listeb to answer-made event
+    socket.on('answer-made', onAnswerMade);
+
     // listen to ice-candidate event
     // which is ice-candidate of other user
     socket.on('ice-candidate', onIceCandidateRecieved);
@@ -52,7 +55,9 @@ let init = async () => {
   localVideo.srcObject = localStream;
 };
 
-let createOffer = async (sid) => {
+// create peer connection
+// used both for offer and answer
+let createPeerConnection = async (sid) => {
   peerConnection = new RTCPeerConnection(servers);
 
   // setup remote video
@@ -74,10 +79,6 @@ let createOffer = async (sid) => {
     });
   };
 
-  // create offer
-  const offer = await peerConnection.createOffer();
-  await peerConnection.setLocalDescription(offer); // triggers ice gathering
-
   // trickle ice candidates
   // onicecandidate event is fired whenever a candidate is found
   peerConnection.onicecandidate = async (event) => {
@@ -92,24 +93,57 @@ let createOffer = async (sid) => {
       });
     }
   };
+};
+
+let createOffer = async (sid) => {
+  await createPeerConnection(sid);
+
+  // create offer
+  const offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer); // triggers ice gathering
 
   // send offer to new user
   console.log(`[SOCKET] call user(${sid}) with offer`);
   socket.emit('call-user', { to: sid, offer });
 };
 
-onNewUserJoinedRoom = async (user) => {
+// create answer to offer
+let createAnswer = async (sid, offer) => {
+  await createPeerConnection(sid);
+
+  await peerConnection.setRemoteDescription(offer);
+
+  // create answer
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer); // peer 2 case
+
+  // send answer to other user
+  console.log(`[SOCKET] answer to user(${sid})`);
+  socket.emit('make-answer', { to: sid, answer });
+};
+
+let onNewUserJoinedRoom = async (user) => {
   console.log(`[SOCKET:on"newUser"] new user(${user.sid}) joined room`);
   await createOffer(user.sid);
 };
 
 // handle offer from new user
-onCallMade = (data) => {
+let onCallMade = (data) => {
   console.log(`[SOCKET:on"call-made"] received offer from other user(${data.socket})`);
+  // create answer and send it to other user
+  createAnswer(data.socket, data.offer);
+};
+
+// handle answer made from other user
+let onAnswerMade = (data) => {
+  console.log(`[SOCKET:on"answer-made"] received answer from other user(${data.socket})`);
+  if (!peerConnection.currentRemoteDescription) {
+    peerConnection.setRemoteDescription(data.answer);
+  }
 };
 
 // handle ice-candidate from other user
-onIceCandidateRecieved = (data) => {
+let onIceCandidateRecieved = (data) => {
   console.log(
     `[SOCKET:on"ice-candidate"] received ice-candidate from other user(${data.sid}), candidate: ${data.candidate}`
   );
