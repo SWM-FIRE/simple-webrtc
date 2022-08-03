@@ -135,14 +135,14 @@ let onNewUserJoinedRoom = async (user) => {
 
 // handle offer from new user
 let onCallMade = async (data) => {
-  console.log(`[SOCKET:on"call-made"] received offer from other user(${data.socket})`);
+  console.log(`[SOCKET:on"call-made"] received offer from other user(${data.sid})`);
   // create answer and send it to other user
-  await createAnswer(data.socket, data.offer);
+  await createAnswer(data.sid, data.offer);
 };
 
 // handle answer made from other user
 let onAnswerMade = async (data) => {
-  console.log(`[SOCKET:on"answer-made"] received answer from other user(${data.socket})`);
+  console.log(`[SOCKET:on"answer-made"] received answer from other user(${data.sid})`);
   if (!peerConnection.currentRemoteDescription) {
     peerConnection.setRemoteDescription(data.answer);
   }
