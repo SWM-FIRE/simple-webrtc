@@ -20,7 +20,7 @@ const servers = {
 };
 
 let socket;
-const room = 'random';
+const room = 999;
 const uid = 'user1';
 
 let init = async () => {
@@ -29,7 +29,7 @@ let init = async () => {
   localVideo.srcObject = localStream;
 
   // initialize socket.io
-  socket = io('https://모도코.com/socket/room');
+  socket = io('https://모도코.com/socket/room/');
   socket.on('connect', () => {
     console.log('[SOCKET] socket connected');
 
@@ -48,7 +48,7 @@ let init = async () => {
     // which is call-made event
     socket.on('call-made', onCallMade); // end of call-made event listener
 
-    // listeb to answer-made event
+    // listen to answer-made event
     socket.on('answer-made', onAnswerMade);
 
     // listen to ice-candidate event
@@ -96,7 +96,7 @@ let createPeerConnection = async (sid) => {
       console.log('[SOCKET] Trickle ice (send ice candidate)');
       // send ice candidate to other user
       socket.emit('ice-candidate', {
-        to: sid,
+        sid: sid,
         candidate: event.candidate,
       });
     }
@@ -112,7 +112,7 @@ let createOffer = async (sid) => {
 
   // send offer to new user
   console.log(`[SOCKET] call user(${sid}) with offer`);
-  socket.emit('call-user', { to: sid, offer });
+  socket.emit('call-user', { sid: sid, offer });
 };
 
 // create answer to offer
@@ -127,7 +127,7 @@ let createAnswer = async (sid, offer) => {
 
   // send answer to other user
   console.log(`[SOCKET] answer to user(${sid})`);
-  socket.emit('make-answer', { to: sid, answer });
+  socket.emit('make-answer', { sid: sid, answer });
 };
 
 let onNewUserJoinedRoom = async (user) => {
